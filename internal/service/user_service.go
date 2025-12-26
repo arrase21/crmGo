@@ -19,9 +19,12 @@ func NewUserService(u domain.UserRepo) *UserService {
 }
 
 func (s *UserService) Create(ctx context.Context, usr *domain.User) error {
+	if usr == nil {
+		return errors.New("user cannot be nil")
+	}
 	// validate
 	usr.Normalize()
-	if err := usr.Validate(); err != nil {
+	if err := usr.ValidateAll(); err != nil {
 		return fmt.Errorf("Validation error in domain %w", err)
 	}
 	// context
@@ -30,7 +33,7 @@ func (s *UserService) Create(ctx context.Context, usr *domain.User) error {
 		return fmt.Errorf("error checking existing user: %w", err)
 	}
 	if existing != nil {
-		return errors.New("users with this dni already exixting")
+		return domain.ErrDniAlreadyExist
 	}
 	return s.usrRepo.Create(ctx, usr)
 }
@@ -43,6 +46,9 @@ func (s *UserService) GetByID(ctx context.Context, id uint) (*domain.User, error
 }
 
 func (s *UserService) GetByDni(ctx context.Context, dni string) (*domain.User, error) {
+	if dni == "" {
+		return nil, errors.New("dni cannot be empty")
+	}
 	return s.usrRepo.GetByDni(ctx, dni)
 }
 
@@ -51,21 +57,24 @@ func (s *UserService) List(ctx context.Context) ([]domain.User, error) {
 }
 
 func (s *UserService) Update(ctx context.Context, usr *domain.User) error {
+	if usr == nil {
+		return errors.New("user cannot be nil")
+	}
 	if usr.ID == 0 {
 		return errors.New("user id is required")
 	}
 	// validate
 	usr.Normalize()
-	if err := usr.Validate(); err != nil {
+	if err := usr.ValidateAll(); err != nil {
 		return fmt.Errorf("validation erro in domain: %w", err)
 	}
 	// duplicates
 	existing, err := s.usrRepo.GetByDni(ctx, usr.Dni)
 	if err != nil && !errors.Is(err, domain.ErrUserNotFound) {
-		return err
+		return fmt.Errorf("error checking existing dni: %w", err)
 	}
 	if existing != nil && existing.ID != usr.ID {
-		return errors.New("Dni already exists for another user")
+		return domain.ErrDniAlreadyExist
 	}
 	return s.usrRepo.Update(ctx, usr)
 }

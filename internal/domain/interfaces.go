@@ -5,9 +5,19 @@ import (
 	"errors"
 )
 
+// domain errors
 var (
-	ErrUserNotFound = errors.New("user not found")
+	ErrUserNotFound      = errors.New("user not found")
+	ErrDniAlreadyExist   = errors.New("dni already exists")
+	ErrEmailAlreadyExist = errors.New("email already exists") // ✅ Opcional: para futuro
+	ErrPhoneAlreadyExist = errors.New("phone already exists") // ✅ Opcional: para futuro
+	ErrInvalidTenantID   = errors.New("invalid tenant id")    // ✅ Opcional: para futuro
 )
+
+// ContextKey for tenant
+type contextKey string
+
+const TenantIDKey contextKey = "tenant_id"
 
 type UserRepo interface {
 	Create(ctx context.Context, usr *User) error
