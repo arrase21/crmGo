@@ -35,14 +35,16 @@ func (h *UserHandler) Create(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// Parsear la fecha correctamente
+
 	birth, err := time.Parse(time.RFC3339Nano, req.BirthDay)
 	if err != nil {
 		birth, err = time.Parse("2006-01-02", req.BirthDay)
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birth_day format (expected RFC3339 or YYYY-MM-DD)"})
+			return
 		}
 	}
+
 	// Construir objeto de dominio
 	user := &domain.User{
 		FirstName: req.FirstName,
@@ -55,13 +57,12 @@ func (h *UserHandler) Create(c *gin.Context) {
 	}
 
 	user.Normalize()
-	// Validaciones del dominio
+
 	if err := user.ValidateAll(); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Guardar en el servicio
 	if err := h.svc.Create(c.Request.Context(), user); err != nil {
 		if errors.Is(err, domain.ErrDniAlreadyExist) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
@@ -79,7 +80,7 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid id"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -99,9 +100,10 @@ func (h *UserHandler) GetByID(c *gin.Context) {
 func (h *UserHandler) GetByDni(c *gin.Context) {
 	dni := c.Query("dni")
 	if dni == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "dni is required"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "dni query parameter is required"})
 		return
 	}
+
 	usr, err := h.svc.GetByDni(c.Request.Context(), dni)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
@@ -111,6 +113,7 @@ func (h *UserHandler) GetByDni(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, usr)
 }
 
@@ -138,14 +141,16 @@ func (h *UserHandler) Update(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
 	}
+
 	var req UpdateUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	user, err := h.svc.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
@@ -155,6 +160,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Actualizar solo los campos enviados
 	if req.FirstName != nil {
 		user.FirstName = *req.FirstName
 	}
@@ -177,8 +184,10 @@ func (h *UserHandler) Update(c *gin.Context) {
 		birth, err := time.Parse(time.RFC3339Nano, *req.BirthDay)
 		if err != nil {
 			birth, err = time.Parse("2006-01-02", *req.BirthDay)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birth_day format"})
-			return
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birth_day format (expected RFC3339 or YYYY-MM-DD)"})
+				return
+			}
 		}
 		user.BirthDay = birth
 	}
@@ -188,14 +197,16 @@ func (h *UserHandler) Update(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
 	if err := h.svc.Update(c.Request.Context(), user); err != nil {
-		if err.Error() == "dni already exist for another user" {
+		if errors.Is(err, domain.ErrDniAlreadyExist) {
 			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"message": "user updated"})
 }
 
@@ -203,9 +214,10 @@ func (h *UserHandler) Delete(c *gin.Context) {
 	idStr := c.Param("id")
 	id, err := strconv.ParseUint(idStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid ID"})
 		return
 	}
+
 	if err := h.svc.Delete(c.Request.Context(), uint(id)); err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -214,5 +226,6 @@ func (h *UserHandler) Delete(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusNoContent, nil)
 }
