@@ -1,0 +1,46 @@
+@baseUrl = http://localhost:8080
+@tenant = 1
+
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant}}
+Content-Type: application/json
+
+{
+  "firstname": "Juan",
+  "lastname": "Pérez",
+  "dni": "12345678",
+  "gender": "M",
+  "phone": "+573001234567",
+  "email": "juan@example.com",
+  "birth_day": "1990-01-15T00:00:00Z"
+}
+### other user
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant}}
+Content-Type: application/json
+
+{
+  "firstname": "Carlos",
+  "lastname": "Blandon",
+  "dni": "1234567",
+  "gender": "M",
+  "phone": "+573001234568",
+  "email": "carl@example.com",
+  "birth_day": "1990-01-15T00:00:00Z"
+}
+
+### Listar usuarios
+GET {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant}}
+
+### Buscar por DNI
+GET {{baseUrl}}/api/v1/users/search?dni=12345678
+X-Tenant-ID: {{tenant}}
+
+### Obtener usuario por ID
+GET {{baseUrl}}/api/v1/users/5
+X-Tenant-ID: {{tenant}}
+
+### Eliminar usuario (soft delete)
+DELETE {{baseUrl}}/api/v1/users/5
+X-Tenant-ID: {{tenant}}

@@ -37,7 +37,7 @@ func NewRouter(userSvc *service.UserService) *gin.Engine {
 	{
 		userHandler := NewUserHandler(userSvc)
 		users.POST("", userHandler.Create)
-		users.GET("/", userHandler.List)
+		users.GET("", userHandler.List)
 		users.GET("/search", userHandler.GetByDni)
 		users.GET("/:id", userHandler.GetByID)
 		users.PUT("/:id", userHandler.Update)
