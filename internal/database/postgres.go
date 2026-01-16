@@ -53,7 +53,11 @@ func Automigrate(db *gorm.DB) error {
 	log.Println("🔄 Running database migrations...")
 	err := db.AutoMigrate(
 		&domain.User{},
-		//add other models here
+		&domain.Permission{},
+		&domain.PermissionAction{},
+		&domain.Role{},
+		&domain.RolePermission{},
+		&domain.UserRole{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %s", err)

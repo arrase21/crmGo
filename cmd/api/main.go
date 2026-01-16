@@ -40,8 +40,12 @@ func main() {
 	}
 	userRepo := repository.NewGormUserRepository(db)
 	userService := service.NewUserService(userRepo)
+	roleRepo := repository.NewGormRoleRepository(db)
+	roleService := service.NewRoleService(roleRepo)
+	userRoleRepo := repository.NewGormUserRoleRepository(db)
+	permissionService := service.NewPermissionService(userRoleRepo, roleRepo)
 
-	router := transportHttp.NewRouter(userService)
+	router := transportHttp.NewRouter(userService, roleService, permissionService)
 	port := getEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         ":" + port,

@@ -6,7 +6,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewRouter(userSvc *service.UserService) *gin.Engine {
+func NewRouter(
+	userSvc *service.UserService,
+	roleSvc *service.RoleService,
+	permissionSvc *service.PermissionService,
+) *gin.Engine {
 	r := gin.Default()
 
 	//CORS
@@ -42,6 +46,25 @@ func NewRouter(userSvc *service.UserService) *gin.Engine {
 		users.GET("/:id", userHandler.GetByID)
 		users.PUT("/:id", userHandler.Update)
 		users.DELETE("/:id", userHandler.Delete)
+	}
+	roles := v1.Group("/roles")
+	{
+		roleHandler := NewRoleHandler(roleSvc, permissionSvc)
+
+		// CRUD roles
+		roles.POST("", roleHandler.Create)
+		roles.GET("", roleHandler.List)
+		roles.GET("/:id", roleHandler.GetByID)
+		roles.PUT("/:id", roleHandler.Update)
+		roles.DELETE("/:id", roleHandler.Delete)
+
+		// Permissions
+		roles.POST("/:id/permissions", roleHandler.AssignPermission)
+		roles.DELETE("/:id/permissions/:actionId", roleHandler.RevokePermission)
+
+		// User ↔ Role
+		roles.POST("/assign", roleHandler.AssignRoleToUser)
+		roles.POST("/revoke", roleHandler.RevokeRoleFromUser)
 	}
 	return r
 }

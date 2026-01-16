@@ -1,46 +1,72 @@
+### 
+
 @baseUrl = http://localhost:8080
 @tenant = 1
+@tenant2 = 2
 
-POST {{baseUrl}}/api/v1/users
-X-Tenant-ID: {{tenant}}
+POST {{baseUrl}}/api/v1/users HTTP/1.1
+X-Tenant-Id: {{tenant}}
 Content-Type: application/json
 
 {
-  "firstname": "Juan",
-  "lastname": "Pérez",
+  "birth_day": "1990-01-15T00:00:00Z",
   "dni": "12345678",
-  "gender": "M",
-  "phone": "+573001234567",
   "email": "juan@example.com",
-  "birth_day": "1990-01-15T00:00:00Z"
+  "firstname": "Juan",
+  "gender": "M",
+  "lastname": "Pérez",
+  "phone": "+573001234567"
 }
-### other user
-POST {{baseUrl}}/api/v1/users
-X-Tenant-ID: {{tenant}}
+
+
+### other tenant
+
+POST {{baseUrl}}/api/v1/users HTTP/1.1
+X-Tenant-Id: {{tenant2}}
+Content-Type: application/json
+
+{
+  "birth_day": "1990-01-15T00:00:00Z",
+  "dni": "1234567",
+  "email": "carlb@example.com",
+  "firstname": "Carlos",
+  "gender": "M",
+  "lastname": "Blandon",
+  "phone": "+5730012345681"
+}
+
+
+### Actualizar
+
+PUT {{baseUrl}}/api/v1/users/4 HTTP/1.1
+X-Tenant-Id: {{tenant}}
 Content-Type: application/json
 
 {
   "firstname": "Carlos",
-  "lastname": "Blandon",
-  "dni": "1234567",
-  "gender": "M",
-  "phone": "+573001234568",
-  "email": "carl@example.com",
-  "birth_day": "1990-01-15T00:00:00Z"
+  "lastname": "Juan"
 }
 
+
 ### Listar usuarios
-GET {{baseUrl}}/api/v1/users
-X-Tenant-ID: {{tenant}}
+
+GET {{baseUrl}}/api/v1/users HTTP/1.1
+X-Tenant-Id: {{tenant}}
+
 
 ### Buscar por DNI
-GET {{baseUrl}}/api/v1/users/search?dni=12345678
-X-Tenant-ID: {{tenant}}
+
+GET {{baseUrl}}/api/v1/users/search?dni=12345678 HTTP/1.1
+X-Tenant-Id: {{tenant}}
+
 
 ### Obtener usuario por ID
-GET {{baseUrl}}/api/v1/users/5
-X-Tenant-ID: {{tenant}}
+
+GET {{baseUrl}}/api/v1/users/4 HTTP/1.1
+X-Tenant-Id: {{tenant}}
+
 
 ### Eliminar usuario (soft delete)
-DELETE {{baseUrl}}/api/v1/users/5
-X-Tenant-ID: {{tenant}}
+
+DELETE {{baseUrl}}/api/v1/users/5 HTTP/1.1
+X-Tenant-Id: {{tenant}}
