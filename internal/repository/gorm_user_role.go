@@ -25,24 +25,24 @@ func (r *GormUserRoleRepo) AssignRole(ctx context.Context, userID, roleID uint) 
 		return err
 	}
 	var user domain.User
-	if err := r.db.First(&user, userID).Error; err != nil {
+	if err := r.db.Where("id = ? AND tenant_id = ?", userID, tenantID).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.ErrUserNotFound
 		}
 		return err
 	}
 	if user.TenantID != tenantID {
-		return errors.New("user does belong to tenant")
+		return errors.New("user does not belong to tenant")
 	}
 	var role domain.Role
-	if err := r.db.First(&user, roleID).Error; err != nil {
+	if err := r.db.Where("id = ? AND tenant_id = ?", roleID, tenantID).First(&role).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return domain.ErrRoleNotFound
 		}
 		return err
 	}
 	if role.TenantID != tenantID {
-		return errors.New("role does belong to tenant")
+		return errors.New("role does not belong to tenant")
 	}
 	userRole := &domain.UserRole{
 		UserID:   userID,
@@ -89,9 +89,9 @@ func (r *GormUserRoleRepo) GetUserRoles(ctx context.Context, userID uint) ([]dom
 	var roles []domain.Role
 	err = r.db.WithContext(ctx).
 		Joins("JOIN user_roles ON user_roles.role_id = roles.id").
-		Preload("Rolepermissions.Action.Resource").
+		Preload("RolePermissions.Action.Resource").
 		Where("user_roles.user_id = ? AND user_roles.tenant_id = ?", userID, tenantID).
-		Where("role.is_active = ?", true).
+		Where("roles.is_active = ?", true).
 		Find(&roles).Error
 	if err != nil {
 		return nil, err
@@ -109,11 +109,11 @@ func (r *GormUserRoleRepo) GetRoleUsers(ctx context.Context, roleID uint) ([]dom
 	}
 	var users []domain.User
 	err = r.db.WithContext(ctx).
-		Joins("JOIN user_roles ON user_roles.user_id = users.id", roleID, tenantID).
+		Joins("JOIN user_roles ON user_roles.user_id = users.id").
 		Where("user_roles.role_id = ? AND user_roles.tenant_id = ?", roleID, tenantID).
 		Find(&users).Error
 	if err != nil {
-		return nil, err
+		return nil, errors.New("invalid role id")
 	}
 	return users, nil
 }

@@ -1,72 +1,240 @@
-### 
-
+### Variables
 @baseUrl = http://localhost:8080
-@tenant = 1
+@tenant1 = 1
 @tenant2 = 2
 
-POST {{baseUrl}}/api/v1/users HTTP/1.1
-X-Tenant-Id: {{tenant}}
+### ========================================
+### HEALTH CHECK
+### ========================================
+
+### Health check
+GET {{baseUrl}}/health
+
+### ========================================
+### USERS - CRUD BÁSICO
+### ========================================
+
+### 1. Crear usuario en Tenant 1
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
 Content-Type: application/json
 
 {
-  "birth_day": "1990-01-15T00:00:00Z",
-  "dni": "12345678",
-  "email": "juan@example.com",
   "firstname": "Juan",
-  "gender": "M",
   "lastname": "Pérez",
-  "phone": "+573001234567"
-}
-
-
-### other tenant
-
-POST {{baseUrl}}/api/v1/users HTTP/1.1
-X-Tenant-Id: {{tenant2}}
-Content-Type: application/json
-
-{
-  "birth_day": "1990-01-15T00:00:00Z",
-  "dni": "1234567",
-  "email": "carlb@example.com",
-  "firstname": "Carlos",
+  "dni": "12345678",
   "gender": "M",
-  "lastname": "Blandon",
-  "phone": "+5730012345681"
+  "phone": "+573001234567",
+  "email": "juan@example.com",
+  "birth_day": "1990-01-15T00:00:00Z"
 }
 
+### 2. Crear usuario en Tenant 1 (Manager)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
 
-### Actualizar
+{
+  "firstname": "María",
+  "lastname": "González",
+  "dni": "87654321",
+  "gender": "F",
+  "phone": "+573007654321",
+  "email": "maria@example.com",
+  "birth_day": "1992-05-20T00:00:00Z"
+}
 
-PUT {{baseUrl}}/api/v1/users/4 HTTP/1.1
-X-Tenant-Id: {{tenant}}
+### 3. Crear usuario en Tenant 1 (User básico)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant2}}
 Content-Type: application/json
 
 {
   "firstname": "Carlos",
-  "lastname": "Juan"
+  "lastname": "Rodríguez",
+  "dni": "1122334455",
+  "gender": "M",
+  "phone": "+573009887654",
+  "email": "carlost2@example.com",
+  "birth_day": "1988-12-10T00:00:00Z"
 }
 
+### 4. Listar usuarios de Tenant 1
+GET {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant2}}
 
-### Listar usuarios
+### 5. Obtener usuario por ID
+GET {{baseUrl}}/api/v1/users/1
+X-Tenant-ID: {{tenant1}}
 
-GET {{baseUrl}}/api/v1/users HTTP/1.1
-X-Tenant-Id: {{tenant}}
+### 6. Buscar por DNI
+GET {{baseUrl}}/api/v1/users/search?dni=12345678
+X-Tenant-ID: {{tenant1}}
 
+### 7. Actualizar usuario
+PUT {{baseUrl}}/api/v1/users/1
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
 
-### Buscar por DNI
+{
+  "email": "juan.updated@example.com",
+  "phone": "+573001111111"
+}
 
-GET {{baseUrl}}/api/v1/users/search?dni=12345678 HTTP/1.1
-X-Tenant-Id: {{tenant}}
+### 8. Eliminar usuario (soft delete)
+DELETE {{baseUrl}}/api/v1/users/3
+X-Tenant-ID: {{tenant1}}
 
+### ========================================
+### TESTING MULTI-TENANCY
+### ========================================
 
-### Obtener usuario por ID
+### 20. Crear usuario con mismo DNI en Tenant 2 (debe funcionar)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant2}}
+Content-Type: application/json
 
-GET {{baseUrl}}/api/v1/users/4 HTTP/1.1
-X-Tenant-Id: {{tenant}}
+{
+  "firstname": "Pedro",
+  "lastname": "Tenant2",
+  "dni": "12345678",
+  "gender": "M",
+  "phone": "+573002222222",
+  "email": "pedro@tenant2.com",
+  "birth_day": "1991-02-02T00:00:00Z"
+}
 
+### 21. Listar usuarios de Tenant 2 (no debe ver usuarios de Tenant 1)
+GET {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant2}}
 
-### Eliminar usuario (soft delete)
+### 22. Intentar acceder a usuario de Tenant 1 desde Tenant 2 (debe fallar)
+GET {{baseUrl}}/api/v1/users/1
+X-Tenant-ID: {{tenant2}}
 
-DELETE {{baseUrl}}/api/v1/users/5 HTTP/1.1
-X-Tenant-Id: {{tenant}}
+### ========================================
+### CASOS DE ERROR
+### ========================================
+
+### 23. Sin X-Tenant-ID (debe dar error 400)
+GET {{baseUrl}}/api/v1/users
+
+### 24. DNI duplicado en mismo tenant (debe dar error 409)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "firstname": "Duplicado",
+  "lastname": "Test",
+  "dni": "12345678",
+  "gender": "M",
+  "phone": "+573003333333",
+  "email": "duplicado@example.com",
+  "birth_day": "1990-01-01T00:00:00Z"
+}
+
+### 25. Email inválido (debe dar error 400)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "firstname": "Test",
+  "lastname": "Invalid",
+  "dni": "88888888",
+  "gender": "M",
+  "phone": "+573008888888",
+  "email": "email-sin-arroba",
+  "birth_day": "1990-01-01T00:00:00Z"
+}
+
+### 26. Usuario menor de edad (debe dar error 400)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "firstname": "Test",
+  "lastname": "Menor",
+  "dni": "77777777",
+  "gender": "M",
+  "phone": "+573007777777",
+  "email": "menor@example.com",
+  "birth_day": "2010-01-01T00:00:00Z"
+}
+
+### 27. Género inválido (debe dar error 400)
+POST {{baseUrl}}/api/v1/users
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "firstname": "Test",
+  "lastname": "Genero",
+  "dni": "66666666",
+  "gender": "X",
+  "phone": "+573006666666",
+  "email": "test@example.com",
+  "birth_day": "1990-01-01T00:00:00Z"
+}
+
+### ========================================
+### ROLES - CRUD
+### ========================================
+
+### 9. Listar roles disponibles (creados por SQL)
+GET {{baseUrl}}/api/v1/roles
+X-Tenant-ID: {{tenant1}}
+
+### 10. Obtener rol por ID
+GET {{baseUrl}}/api/v1/roles/1
+X-Tenant-ID: {{tenant1}}
+
+### 11. Crear rol personalizado
+POST {{baseUrl}}/api/v1/roles
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "name": "ventas",
+  "description": "Equipo de ventas"
+}
+
+### 12. Actualizar rol
+PUT {{baseUrl}}/api/v1/roles/1
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "description": "Equipo de ventas y marketing",
+  "is_active": true
+}
+
+### 13. Eliminar rol personalizado (NO roles del sistema)
+DELETE {{baseUrl}}/api/v1/roles/4
+X-Tenant-ID: {{tenant1}}
+
+### ========================================
+### ASIGNACIÓN DE ROLES A USUARIOS
+### ========================================
+
+### 14. Asignar rol "admin" a Juan (user_id=1)
+POST {{baseUrl}}/api/v1/roles/assign
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "user_id": 1,
+  "role_id": 1
+}
+
+### 18. Asignar permiso a rol personalizado (action_id=1 = users.create)
+# Primero necesitas saber el action_id de la BD
+POST {{baseUrl}}/api/v1/roles/1/permissions
+X-Tenant-ID: {{tenant1}}
+Content-Type: application/json
+
+{
+  "action_id": 1
+}

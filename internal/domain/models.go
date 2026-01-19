@@ -81,3 +81,116 @@ type UserRole struct {
 	User User `gorm:"foreignKey:UserID" json:"-"`
 	Role Role `gorm:"foreignKey:RoleID" json:"-"`
 }
+
+// ========================================
+// Métodos de conveniencia
+// ========================================
+
+// TableName especifica nombres de tablas
+func (User) TableName() string {
+	return "users"
+}
+
+func (Permission) TableName() string {
+	return "permissions"
+}
+
+func (PermissionAction) TableName() string {
+	return "permission_actions"
+}
+
+func (Role) TableName() string {
+	return "roles"
+}
+
+func (RolePermission) TableName() string {
+	return "role_permissions"
+}
+
+func (UserRole) TableName() string {
+	return "user_roles"
+}
+
+// ========================================
+// Métodos de User para verificar permisos
+// ========================================
+
+// HasRole verifica si el usuario tiene un rol específico
+func (u *User) HasRole(roleName string) bool {
+	for _, role := range u.Roles {
+		if role.Name == roleName && role.IsActive {
+			return true
+		}
+	}
+	return false
+}
+
+// HasPermission verifica si el usuario tiene un permiso específico
+func (u *User) HasPermission(resource, action string) bool {
+	for _, role := range u.Roles {
+		if !role.IsActive {
+			continue
+		}
+		for _, rp := range role.RolePermissions {
+			if rp.Action.Resource.Name == resource &&
+				rp.Action.Action == action &&
+				rp.Action.IsActive {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// IsAdmin verifica si el usuario es admin
+func (u *User) IsAdmin() bool {
+	return u.HasRole("admin")
+}
+
+// GetAllPermissions retorna todos los permisos del usuario
+func (u *User) GetAllPermissions() []string {
+	permissions := make(map[string]bool)
+
+	for _, role := range u.Roles {
+		if !role.IsActive {
+			continue
+		}
+		for _, rp := range role.RolePermissions {
+			if rp.Action.IsActive {
+				slug := rp.Action.Resource.Name + "." + rp.Action.Action
+				permissions[slug] = true
+			}
+		}
+	}
+
+	result := make([]string, 0, len(permissions))
+	for perm := range permissions {
+		result = append(result, perm)
+	}
+	return result
+}
+
+// ========================================
+// Métodos de Role
+// ========================================
+
+// HasPermission verifica si el rol tiene un permiso específico
+func (r *Role) HasPermission(resource, action string) bool {
+	for _, rp := range r.RolePermissions {
+		if rp.Action.Resource.Name == resource &&
+			rp.Action.Action == action &&
+			rp.Action.IsActive {
+			return true
+		}
+	}
+	return false
+}
+
+// ========================================
+// Métodos de PermissionAction
+// ========================================
+
+// GetSlug retorna el slug del permiso (users.create)
+func (pa *PermissionAction) GetSlug() string {
+	return pa.Resource.Name + "." + pa.Action
+}

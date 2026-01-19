@@ -198,7 +198,7 @@ func (r *GormRoleRepo) RevokePermission(ctx context.Context, roleID, actionID ui
 	if role.TenantID != tenantID {
 		return errors.New("role does not belong to tenant")
 	}
-	result := r.db.WithContext(ctx).Where("role_is = ? AND action_id = ?", roleID, actionID).Delete(&domain.RolePermission{})
+	result := r.db.WithContext(ctx).Where("role_id = ? AND action_id = ?", roleID, actionID).Delete(&domain.RolePermission{})
 	if result.Error != nil {
 		return result.Error
 	}
