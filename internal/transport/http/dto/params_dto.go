@@ -12,8 +12,8 @@ type DNIParams struct {
 
 // ListUsersQuery para validar query parameters en el listado
 type ListUsersQuery struct {
-	Page  int    `form:"page" validate:"omitempty,min=1"`
-	Limit int    `form:"limit" validate:"omitempty,min=1,max=100"`
+	Page  int    `form:"page,default=1" validate:"omitempty,min=1"`
+	Limit int    `form:"limit,default=20" validate:"omitempty,min=1,max=100"`
 	Email string `form:"email" validate:"omitempty,email"`
 	Role  string `form:"role" validate:"omitempty,alpha"`
 }

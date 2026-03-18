@@ -155,7 +155,7 @@ func (h *UserHandlerV2) GetByDni(c *gin.Context) {
 	})
 }
 
-// List lista todos los usuarios
+// List lista todos los usuarios con paginación
 func (h *UserHandlerV2) List(c *gin.Context) {
 	// Validar query parameters (opcional)
 	var queryParams dto.ListUsersQuery
@@ -168,17 +168,25 @@ func (h *UserHandlerV2) List(c *gin.Context) {
 		return
 	}
 
-	users, err := h.svc.List(c.Request.Context())
+	users, total, err := h.svc.List(c.Request.Context(), queryParams.Page, queryParams.Limit)
 	if err != nil {
 		h.handleServiceError(c, err)
 		return
 	}
 
+	totalPages := int(total) / queryParams.Limit
+	if int(total)%queryParams.Limit > 0 {
+		totalPages++
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"users": users,
-		"count": len(users),
-		"page":  queryParams.Page,
-		"limit": queryParams.Limit,
+		"pagination": gin.H{
+			"page":        queryParams.Page,
+			"limit":       queryParams.Limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
 	})
 }
 

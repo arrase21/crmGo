@@ -41,13 +41,10 @@ func (m *MockUserRepo) GetByDni(ctx context.Context, dni string) (*domain.User, 
 	return args.Get(0).(*domain.User), args.Error(1)
 }
 
-// List provides a mock function with given fields: ctx
-func (m *MockUserRepo) List(ctx context.Context) ([]domain.User, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]domain.User), args.Error(1)
+// List provides a mock function with given fields: ctx, page, limit
+func (m *MockUserRepo) List(ctx context.Context, page, limit int) ([]domain.User, int64, error) {
+	args := m.Called(ctx, page, limit)
+	return args.Get(0).([]domain.User), args.Get(1).(int64), args.Error(2)
 }
 
 // Update provides a mock function with given fields: ctx, usr

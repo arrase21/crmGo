@@ -52,8 +52,8 @@ func (s *UserService) GetByDni(ctx context.Context, dni string) (*domain.User, e
 	return s.usrRepo.GetByDni(ctx, dni)
 }
 
-func (s *UserService) List(ctx context.Context) ([]domain.User, error) {
-	return s.usrRepo.List(ctx)
+func (s *UserService) List(ctx context.Context, page, limit int) ([]domain.User, int64, error) {
+	return s.usrRepo.List(ctx, page, limit)
 }
 
 func (s *UserService) Update(ctx context.Context, usr *domain.User) error {

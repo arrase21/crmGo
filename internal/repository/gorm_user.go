@@ -118,21 +118,43 @@ func (r *GormUserRepo) GetByDni(ctx context.Context, dni string) (*domain.User, 
 	return &user, nil
 }
 
-func (r *GormUserRepo) List(ctx context.Context) ([]domain.User, error) {
+func (r *GormUserRepo) List(ctx context.Context, page, limit int) ([]domain.User, int64, error) {
 	tenantID, err := tenantFromctx(ctx)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
+	// Valores por defecto
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 100 {
+		limit = 20
+	}
+	offset := (page - 1) * limit
+
 	var usrs []domain.User
+	var total int64
+
+	// Contar total
+	if err := r.db.WithContext(ctx).
+		Model(&domain.User{}).
+		Where("tenant_id = ?", tenantID).
+		Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Obtener página
 	if err := r.db.WithContext(ctx).
 		Where("tenant_id = ?", tenantID).
 		Order("id DESC").
+		Offset(offset).
+		Limit(limit).
 		Find(&usrs).Error; err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	return usrs, nil
+	return usrs, total, nil
 }
 
 func (r *GormUserRepo) Update(ctx context.Context, usr *domain.User) error {

@@ -273,27 +273,29 @@ func TestUserService_List(t *testing.T) {
 			{ID: 1, FirstName: "John", LastName: "Doe"},
 			{ID: 2, FirstName: "Jane", LastName: "Smith"},
 		}
-		mockRepo.On("List", ctx).Return(expectedUsers, nil).Once()
+		mockRepo.On("List", ctx, 1, 20).Return(expectedUsers, int64(2), nil).Once()
 
 		// Act
-		users, err := service.List(ctx)
+		users, total, err := service.List(ctx, 1, 20)
 
 		// Assert
 		require.NoError(t, err)
 		assert.Equal(t, expectedUsers, users)
+		assert.Equal(t, int64(2), total)
 		mockRepo.AssertExpectations(t)
 	})
 
 	t.Run("❌ Error - Repository error", func(t *testing.T) {
 		// Arrange
-		mockRepo.On("List", ctx).Return(nil, errors.New("database error")).Once()
+		mockRepo.On("List", ctx, 1, 20).Return([]domain.User(nil), int64(0), errors.New("database error")).Once()
 
 		// Act
-		users, err := service.List(ctx)
+		users, total, err := service.List(ctx, 1, 20)
 
 		// Assert
 		assert.Error(t, err)
 		assert.Nil(t, users)
+		assert.Equal(t, int64(0), total)
 		assert.Contains(t, err.Error(), "database error")
 		mockRepo.AssertExpectations(t)
 	})

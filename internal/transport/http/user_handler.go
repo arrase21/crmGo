@@ -19,6 +19,19 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 	return &UserHandler{svc}
 }
 
+// parseBirthDay intenta parsear una fecha con múltiples formatos
+func parseBirthDay(dateStr string) (time.Time, error) {
+	birth, err := time.Parse(time.RFC3339Nano, dateStr)
+	if err == nil {
+		return birth, nil
+	}
+	birth, err = time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return time.Time{}, errors.New("invalid birth_day format (expected RFC3339 or YYYY-MM-DD)")
+	}
+	return birth, nil
+}
+
 type CreateUserRequest struct {
 	FirstName string `json:"firstname" binding:"required,max=30"`
 	LastName  string `json:"lastname" binding:"required,max=40"`
@@ -36,13 +49,10 @@ func (h *UserHandler) Create(c *gin.Context) {
 		return
 	}
 
-	birth, err := time.Parse(time.RFC3339Nano, req.BirthDay)
+	birth, err := parseBirthDay(req.BirthDay)
 	if err != nil {
-		birth, err = time.Parse("2006-01-02", req.BirthDay)
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birth_day format (expected RFC3339 or YYYY-MM-DD)"})
-			return
-		}
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
 	}
 
 	// Construir objeto de dominio
@@ -118,13 +128,30 @@ func (h *UserHandler) GetByDni(c *gin.Context) {
 }
 
 func (h *UserHandler) List(c *gin.Context) {
-	usrs, err := h.svc.List(c.Request.Context())
+	// Parsear paginación
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+
+	usrs, total, err := h.svc.List(c.Request.Context(), page, limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"users": usrs})
+	totalPages := int(total) / limit
+	if int(total)%limit > 0 {
+		totalPages++
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"users": usrs,
+		"pagination": gin.H{
+			"page":        page,
+			"limit":       limit,
+			"total":       total,
+			"total_pages": totalPages,
+		},
+	})
 }
 
 type UpdateUserRequest struct {
@@ -151,7 +178,8 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
-	user, err := h.svc.GetByID(c.Request.Context(), uint(id))
+	// Obtener usuario existente con sus roles
+	existingUser, err := h.svc.GetByID(c.Request.Context(), uint(id))
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
@@ -161,35 +189,60 @@ func (h *UserHandler) Update(c *gin.Context) {
 		return
 	}
 
+	// Preservar campos que no deben cambiar
+	originalRoles := existingUser.Roles
+	originalTenantID := existingUser.TenantID
+	originalID := existingUser.ID
+	originalCreatedAt := existingUser.CreatedAt
+
+	// Construir usuario actualizado
+	user := &domain.User{
+		ID:        originalID,
+		TenantID:  originalTenantID,
+		CreatedAt: originalCreatedAt,
+		Roles:     originalRoles, // Preservar roles originales
+	}
+
 	// Actualizar solo los campos enviados
 	if req.FirstName != nil {
 		user.FirstName = *req.FirstName
+	} else {
+		user.FirstName = existingUser.FirstName
 	}
 	if req.LastName != nil {
 		user.LastName = *req.LastName
+	} else {
+		user.LastName = existingUser.LastName
 	}
 	if req.Dni != nil {
 		user.Dni = *req.Dni
+	} else {
+		user.Dni = existingUser.Dni
 	}
 	if req.Gender != nil {
 		user.Gender = *req.Gender
+	} else {
+		user.Gender = existingUser.Gender
 	}
 	if req.Phone != nil {
 		user.Phone = *req.Phone
+	} else {
+		user.Phone = existingUser.Phone
 	}
 	if req.Email != nil {
 		user.Email = *req.Email
+	} else {
+		user.Email = existingUser.Email
 	}
 	if req.BirthDay != nil {
-		birth, err := time.Parse(time.RFC3339Nano, *req.BirthDay)
+		birth, err := parseBirthDay(*req.BirthDay)
 		if err != nil {
-			birth, err = time.Parse("2006-01-02", *req.BirthDay)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birth_day format (expected RFC3339 or YYYY-MM-DD)"})
-				return
-			}
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
 		}
 		user.BirthDay = birth
+	} else {
+		user.BirthDay = existingUser.BirthDay
 	}
 
 	user.Normalize()
