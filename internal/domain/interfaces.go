@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // domain errors
@@ -25,6 +26,15 @@ var (
 var (
 	ErrPermissionNotFound = errors.New("permission not found")
 	ErrActionNotFound     = errors.New("action not found")
+)
+
+// Errores de Nómina
+var (
+	ErrEmployeeNotFound         = errors.New("employee not found")
+	ErrEmployeeContractNotFound = errors.New("active contract not found")
+	ErrPayrollNotFound          = errors.New("payroll not found")
+	ErrPayrollAlreadyPaid       = errors.New("payroll already paid")
+	ErrConceptNotFound          = errors.New("payroll concept not found")
 )
 
 // ContextKey for tenant
@@ -71,4 +81,31 @@ type UserRoleRepo interface {
 	RevokeRole(ctx context.Context, userID, roleID uint) error
 	GetUserRoles(ctx context.Context, userID uint) ([]Role, error)
 	GetRoleUsers(ctx context.Context, userID uint) ([]User, error)
+}
+
+// Los siguientes modelos estan para implementar al acabar de implementar uno bajar este al siguiente modelo
+type EmployeeRepo interface {
+	Create(ctx context.Context, emp *Employee) error
+	GetByID(ctx context.Context, id uint) (*Employee, error)
+	GetByUserID(ctx context.Context, userID uint) (*Employee, error)
+	List(ctx context.Context, page, limit int) ([]Employee, int64, error)
+}
+
+type PayrollRepo interface {
+	Create(ctx context.Context, payroll *Payroll) error
+	GetByID(ctx context.Context, id uint) (*Payroll, error)
+	GetByEmployeeAndPeriod(ctx context.Context, employeeID uint, periodStart, periodEnd time.Time) (*Payroll, error)
+	ListByEmployee(ctx context.Context, employeeID uint) ([]Payroll, error)
+	Update(ctx context.Context, payroll *Payroll) error
+	Delete(ctx context.Context, id uint) error
+}
+
+type PayrollConceptRepo interface {
+	Create(ctx context.Context, concept *PayrollConcept) error
+	GetByID(ctx context.Context, id uint) (*PayrollConcept, error)
+	GetByCode(ctx context.Context, code string) (*PayrollConcept, error)
+	GetActiveConcepts(ctx context.Context) ([]PayrollConcept, error)
+	List(ctx context.Context, page, limit int) ([]PayrollConcept, int64, error)
+	Update(ctx context.Context, concept *PayrollConcept) error
+	Delete(ctx context.Context, id uint) error
 }

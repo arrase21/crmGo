@@ -33,8 +33,8 @@ func parseBirthDay(dateStr string) (time.Time, error) {
 }
 
 type CreateUserRequest struct {
-	FirstName string `json:"firstname" binding:"required,max=30"`
-	LastName  string `json:"lastname" binding:"required,max=40"`
+	FirstName string `json:"first_name" binding:"required,max=30"`
+	LastName  string `json:"last_name" binding:"required,max=40"`
 	Dni       string `json:"dni" binding:"required,max=20"`
 	Gender    string `json:"gender" binding:"required,oneof=M F"`
 	Phone     string `json:"phone" binding:"required,max=15"`
@@ -155,8 +155,8 @@ func (h *UserHandler) List(c *gin.Context) {
 }
 
 type UpdateUserRequest struct {
-	FirstName *string `json:"firstname" binding:"omitempty,max=30"`
-	LastName  *string `json:"lastname" binding:"omitempty,max=40"`
+	FirstName *string `json:"first_name" binding:"omitempty,max=30"`
+	LastName  *string `json:"last_name" binding:"omitempty,max=40"`
 	Dni       *string `json:"dni" binding:"omitempty,max=20"`
 	Gender    *string `json:"gender" binding:"omitempty,oneof=M F"`
 	Phone     *string `json:"phone" binding:"omitempty,max=15"`

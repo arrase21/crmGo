@@ -38,6 +38,7 @@ func main() {
 	if err := database.Automigrate(db); err != nil {
 		log.Fatalf("❌ Failed to migrate database: %v", err)
 	}
+
 	userRepo := repository.NewGormUserRepository(db)
 	userService := service.NewUserService(userRepo)
 	roleRepo := repository.NewGormRoleRepository(db)

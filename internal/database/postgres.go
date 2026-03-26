@@ -58,6 +58,15 @@ func Automigrate(db *gorm.DB) error {
 		&domain.Role{},
 		&domain.RolePermission{},
 		&domain.UserRole{},
+		&domain.Department{},
+		&domain.Position{},
+		&domain.Employee{},
+		&domain.EmployeeContract{},
+		&domain.ContractType{},
+		&domain.Payroll{},
+		&domain.PayrollItem{},
+		&domain.PayrollConcept{},
+		&domain.Payment{},
 	)
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %s", err)

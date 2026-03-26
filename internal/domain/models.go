@@ -6,6 +6,38 @@ import (
 	"gorm.io/gorm"
 )
 
+// ========================================
+// Payroll Constants
+// ========================================
+
+const (
+	PayrollStatusDraft      = "draft"
+	PayrollStatusCalculated = "calculated"
+	PayrollStatusPaid       = "paid"
+)
+
+const (
+	PayrollTypeEarning              = "earning"
+	PayrollTypeDeduction            = "deduction"
+	PayrollTypeEmployerContribution = "employer_contribution"
+)
+
+// PayrollConcept codes
+const (
+	ConceptBaseSalary      = "BASE_SALARY"
+	ConceptTransport       = "TRANSPORT"
+	ConceptHousing         = "HOUSING"
+	ConceptOvertime        = "OVERTIME"
+	ConceptBonus           = "BONUS"
+	ConceptHealth          = "HEALTH"
+	ConceptPension         = "PENSION"
+	ConceptTax             = "TAX"
+	ConceptOtherDeduction  = "OTHER_DEDUCTION"
+	ConceptHealthEmployer  = "HEALTH_EMPLOYER"
+	ConceptPensionEmployer = "PENSION_EMPLOYER"
+	ConceptParafiscales    = "PARAFISCALES"
+)
+
 type User struct {
 	ID uint `gorm:"primaryKey" json:"id"`
 	// TenantID uint `gorm:"not null;uniqueIndex:idx_users_tenant_dni;uniqueIndex:idx_users_tenant_phone;uniqueIndex:idx_users_tenant_email"`
@@ -82,6 +114,146 @@ type UserRole struct {
 	Role Role `gorm:"foreignKey:RoleID" json:"-"`
 }
 
+type Department struct {
+	ID        uint           `gorm:"primaryKey"`
+	TenantID  uint           `gorm:"not null;index"`
+	Name      string         `gorm:"size:100;not null"`
+	Code      string         `gorm:"size:20;uniqueIndex:idx_dept_tenant_code,composite:tenant_code"`
+	IsActive  bool           `gorm:"default:true"`
+	CreatedAt time.Time      `gorm:"autoCreateTime"`
+	UpdatedAt time.Time      `gorm:"autoUpdateTime"`
+	DeletedAt gorm.DeletedAt `gorm:"index"`
+	Positions []Position     `gorm:"foreignKey:DepartmentID"`
+}
+
+type Position struct {
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	TenantID     uint           `gorm:"not null;index" json:"tenant_id"`
+	DepartmentID uint           `gorm:"index"`
+	NamePosition string         `gorm:"size:100;not null" json:"name_position"`
+	Description  string         `gorm:"size:255;not null" json:"description"`
+	IsActive     bool           `gorm:"default:true"`
+	CreatedAt    time.Time      `gorm:"not null" json:"created_at"`
+	UpdatedAt    time.Time      `gorm:"not null" json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index:idx_users_deleted_at" json:"deleted_at,omitzero"`
+	Deparment    Department     `gorm:"foreignKey:DepartmentID"`
+}
+
+type Employee struct {
+	ID           uint `gorm:"primaryKey"`
+	TenantID     uint `gorm:"not null;index"`
+	UserID       uint `gorm:"not null;uniqueIndex"`
+	DepartmentID uint `gorm:"index"`
+	PositionID   uint `gorm:"index"`
+	IsActive     bool `gorm:"default:true;index"`
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	DeletedAt    gorm.DeletedAt     `gorm:"index"`
+	User         User               `gorm:"foreignKey:UserID"`
+	Department   Department         `gorm:"foreignKey:DepartmentID"`
+	Position     Position           `gorm:"foreignKey:PositionID"`
+	Contracts    []EmployeeContract `gorm:"foreignKey:EmployeeID"`
+}
+type EmployeeContract struct {
+	ID             uint `gorm:"primaryKey"`
+	TenantID       uint `gorm:"not null;index"`
+	EmployeeID     uint `gorm:"not null;index"`
+	ContractTypeID uint `gorm:"index"`
+
+	BaseSalary float64
+	Currency   string `gorm:"size:3"`
+
+	StartDate time.Time
+	EndDate   *time.Time
+	IsActive  bool `gorm:"index"`
+
+	WorkHoursPerDay     float64
+	WorkDaysPerWeek     float64
+	HealthContribution  float64
+	PensionContribution float64
+	TransportAllowance  float64
+	HousingAllowance    float64
+
+	CreatedAt time.Time
+	UpdatedAt time.Time
+
+	Employee     Employee     `gorm:"foreignKey:EmployeeID"`
+	ContractType ContractType `gorm:"foreignKey:ContractTypeID"`
+}
+
+type ContractType struct {
+	ID          uint   `gorm:"primaryKey"`
+	Name        string `gorm:"size:50;not null"`
+	Description string `gorm:"size:255"`
+}
+
+type Payroll struct {
+	ID         uint `gorm:"primaryKey"`
+	TenantID   uint `gorm:"not null;index"`
+	EmployeeID uint `gorm:"not null;index"`
+
+	PeriodStart     time.Time
+	PeriodEnd       time.Time
+	PayDate         time.Time
+	GrossAmount     float64
+	TotalDeductions float64
+	NetAmount       float64
+	Status          string `gorm:"size:20;default:'draft'"` // draft, calculated, paid
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+
+	Employee Employee      `gorm:"foreignKey:EmployeeID"`
+	Items    []PayrollItem `gorm:"foreignKey:PayrollID"`
+}
+type PayrollItem struct {
+	ID           uint    `gorm:"primaryKey"`
+	PayrollID    uint    `gorm:"not null;index"`
+	ConceptID    uint    `gorm:"index"`
+	Type         string  `gorm:"size:20"`       // earning | deduction | employer_contribution
+	Code         string  `gorm:"size:30;index"` // SALARY, HEALTH_EMPLOYEE, PENSION_EMPLOYER, TAX
+	Name         string  `gorm:"size:100"`
+	Amount       float64 `gorm:"not null"`
+	CalculatedAt time.Time
+
+	Payroll Payroll        `gorm:"foreignKey:PayrollID"`
+	Concept PayrollConcept `gorm:"foreignKey:ConceptID"`
+}
+
+type PayrollConcept struct {
+	ID           uint           `gorm:"primaryKey"`
+	TenantID     uint           `gorm:"not null;index" json:"tenant_id"`
+	Code         string         `gorm:"size:30;not null;uniqueIndex:idx_concept_tenant_code,composite:tenant_code" json:"code"`
+	Name         string         `gorm:"size:100" json:"name"`
+	Type         string         `gorm:"size:20" json:"type"` // earning | deduction | employer_contribution
+	Description  string         `gorm:"size:255" json:"description"`
+	Percentage   float64        `gorm:"default:0" json:"percentage"`
+	EmployeePart float64        `gorm:"default:0" json:"employee_part"`
+	EmployerPart float64        `gorm:"default:0" json:"employer_part"`
+	IsMandatory  bool           `gorm:"default:false" json:"is_mandatory"`
+	IsActive     bool           `gorm:"default:true" json:"is_active"`
+	CreatedAt    time.Time      `gorm:"autoCreateTime" json:"created_at"`
+	UpdatedAt    time.Time      `gorm:"autoUpdateTime" json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"deleted_at,omitzero"`
+}
+
+type Payment struct {
+	ID        uint `gorm:"primaryKey"`
+	PayrollID uint `gorm:"not null;index"`
+
+	Method string `gorm:"size:30"` // bank_transfer
+
+	BankName      string `gorm:"size:100"`
+	AccountNumber string `gorm:"size:50"`
+
+	Amount float64
+
+	PaidAt    time.Time
+	Status    string `gorm:"size:20"`
+	CreatedAt time.Time
+
+	Payroll Payroll `gorm:"foreignKey:PayrollID"`
+}
+
 // ========================================
 // Métodos de conveniencia
 // ========================================
@@ -109,6 +281,42 @@ func (RolePermission) TableName() string {
 
 func (UserRole) TableName() string {
 	return "user_roles"
+}
+
+func (Department) TableName() string {
+	return "departments"
+}
+
+func (Position) TableName() string {
+	return "positions"
+}
+
+func (Employee) TableName() string {
+	return "employees"
+}
+
+func (EmployeeContract) TableName() string {
+	return "employee_contracts"
+}
+
+func (ContractType) TableName() string {
+	return "contract_types"
+}
+
+func (Payroll) TableName() string {
+	return "payrolls"
+}
+
+func (PayrollItem) TableName() string {
+	return "payroll_items"
+}
+
+func (PayrollConcept) TableName() string {
+	return "payroll_concepts"
+}
+
+func (Payment) TableName() string {
+	return "payments"
 }
 
 // ========================================
