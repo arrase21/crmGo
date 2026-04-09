@@ -46,7 +46,15 @@ func main() {
 	userRoleRepo := repository.NewGormUserRoleRepository(db)
 	permissionService := service.NewPermissionService(userRoleRepo, roleRepo)
 
-	router := transportHttp.NewRouter(userService, roleService, permissionService)
+	// Employee
+	employeeRepo := repository.NewGormEmployeeRepository(db)
+	employeeService := service.NewEmployeeService(employeeRepo)
+
+	// Payroll Concept
+	payrollConceptRepo := repository.NewGormPayrollConceptRepository(db)
+	payrollConceptService := service.NewPayrollConceptService(payrollConceptRepo)
+
+	router := transportHttp.NewRouter(userService, roleService, permissionService, employeeService, payrollConceptService)
 	port := getEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         ":" + port,

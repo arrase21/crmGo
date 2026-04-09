@@ -205,6 +205,7 @@ type Payroll struct {
 	Employee Employee      `gorm:"foreignKey:EmployeeID"`
 	Items    []PayrollItem `gorm:"foreignKey:PayrollID"`
 }
+
 type PayrollItem struct {
 	ID           uint    `gorm:"primaryKey"`
 	PayrollID    uint    `gorm:"not null;index"`

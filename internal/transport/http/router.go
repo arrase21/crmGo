@@ -10,6 +10,8 @@ func NewRouter(
 	userSvc *service.UserService,
 	roleSvc *service.RoleService,
 	permissionSvc *service.PermissionService,
+	employeeSvc *service.EmployeeService,
+	payrollConceptSvc *service.PayrollConceptService,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -66,5 +68,32 @@ func NewRouter(
 		roles.POST("/assign", roleHandler.AssignRoleToUser)
 		roles.POST("/revoke", roleHandler.RevokeRoleFromUser)
 	}
+
+	// Employees
+	employees := v1.Group("/employees")
+	{
+		employeeHandler := NewEmployeeHandler(employeeSvc)
+		employees.POST("", employeeHandler.Create)
+		employees.GET("", employeeHandler.List)
+		employees.GET("/search", employeeHandler.GetByUserID)
+		employees.GET("/:id", employeeHandler.GetByID)
+		employees.PUT("/:id", employeeHandler.Update)
+		employees.DELETE("/:id", employeeHandler.Delete)
+	}
+
+	// Payroll Concepts
+	payrollConcepts := v1.Group("/payroll-concepts")
+	{
+		conceptHandler := NewPayrollConceptHandler(payrollConceptSvc)
+		payrollConcepts.POST("", conceptHandler.Create)
+		payrollConcepts.GET("", conceptHandler.List)
+		payrollConcepts.GET("/search", conceptHandler.GetByCode)
+		payrollConcepts.GET("/active", conceptHandler.GetActiveConcepts)
+		payrollConcepts.POST("/seed", conceptHandler.SeedDefaultConcepts)
+		payrollConcepts.GET("/:id", conceptHandler.GetByID)
+		payrollConcepts.PUT("/:id", conceptHandler.Update)
+		payrollConcepts.DELETE("/:id", conceptHandler.Delete)
+	}
+
 	return r
 }

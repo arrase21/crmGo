@@ -111,3 +111,40 @@ func (r *GormEmployeeRepo) List(ctx context.Context, page, limit int) ([]domain.
 	}
 	return employees, total, nil
 }
+
+func (r *GormEmployeeRepo) Update(ctx context.Context, emp *domain.Employee) error {
+	if emp == nil {
+		return errors.New("employee cannot be nil")
+	}
+	if emp.ID == 0 {
+		return errors.New("invalid employee id")
+	}
+	tenantID, err := tenantFromctx(ctx)
+	if err != nil {
+		return err
+	}
+	emp.TenantID = tenantID
+	err = r.db.WithContext(ctx).Save(emp).Error
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *GormEmployeeRepo) Delete(ctx context.Context, id uint) error {
+	if id == 0 {
+		return errors.New("invalid employee id")
+	}
+	tenantID, err := tenantFromctx(ctx)
+	if err != nil {
+		return err
+	}
+	result := r.db.WithContext(ctx).Where("tenant_id = ? AND id = ?", tenantID, id).Delete(&domain.Employee{})
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return domain.ErrEmployeeNotFound
+	}
+	return nil
+}

@@ -89,6 +89,8 @@ type EmployeeRepo interface {
 	GetByID(ctx context.Context, id uint) (*Employee, error)
 	GetByUserID(ctx context.Context, userID uint) (*Employee, error)
 	List(ctx context.Context, page, limit int) ([]Employee, int64, error)
+	Update(ctx context.Context, emp *Employee) error
+	Delete(ctx context.Context, id uint) error
 }
 
 type PayrollRepo interface {
