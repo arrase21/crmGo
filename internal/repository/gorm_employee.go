@@ -148,3 +148,41 @@ func (r *GormEmployeeRepo) Delete(ctx context.Context, id uint) error {
 	}
 	return nil
 }
+
+// ListActive retorna solo empleados activos con sus relaciones
+func (r *GormEmployeeRepo) ListActive(ctx context.Context, page, limit int) ([]domain.Employee, int64, error) {
+	tenantID, err := tenantFromctx(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if limit < 1 || limit > 1000 {
+		limit = 100 // Límite más alto para batch
+	}
+	offset := (page - 1) * limit
+
+	var employees []domain.Employee
+	var total int64
+
+	if err := r.db.WithContext(ctx).Model(&domain.Employee{}).
+		Where("tenant_id = ? AND is_active = ?", tenantID, true).
+		Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	if err := r.db.WithContext(ctx).
+		Preload("User").
+		Preload("Contracts", "is_active = ?", true). // Solo contratos activos
+		Preload("Contracts.ContractType").
+		Where("tenant_id = ? AND is_active = ?", tenantID, true).
+		Order("id ASC").
+		Offset(offset).
+		Limit(limit).
+		Find(&employees).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return employees, total, nil
+}

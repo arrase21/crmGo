@@ -72,7 +72,7 @@ func (r *GormPayrollRepo) GetByEmployeeAndPeriod(ctx context.Context, employeID 
 	err = r.db.WithContext(ctx).
 		Preload("Employee.User").
 		Preload("Items").
-		Where("tenant_id = ? AND employe_id = ? AND period_start = ? AND period_end =?", tenantID, employeID, periodStart, periodEnd).
+		Where("tenant_id = ? AND employee_id = ? AND period_start = ? AND period_end =?", tenantID, employeID, periodStart, periodEnd).
 		First(&payroll).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -96,7 +96,7 @@ func (r *GormPayrollRepo) ListByEmployee(ctx context.Context, employeeID uint) (
 		Preload("Employee.User").
 		Preload("Items").
 		Where("tenant_id = ? AND employee_id = ?", tenanID, employeeID).
-		Order("Period").
+		Order("period_start").
 		Find(&payrolls).Error
 	if err != nil {
 		return nil, err
@@ -142,4 +142,24 @@ func (r *GormPayrollRepo) Delete(ctx context.Context, id uint) error {
 		return domain.ErrPayrollNotFound
 	}
 	return nil
+}
+
+// GetByPeriod obtiene todas las nóminas de un periodo
+func (r *GormPayrollRepo) GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]domain.Payroll, error) {
+	tenantID, err := tenantFromctx(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var payrolls []domain.Payroll
+	err = r.db.WithContext(ctx).
+		Preload("Employee.User").
+		Preload("Items").
+		Where("tenant_id = ? AND period_start >= ? AND period_end <= ?", tenantID, periodStart, periodEnd).
+		Order("employee_id, period_start").
+		Find(&payrolls).Error
+	if err != nil {
+		return nil, err
+	}
+	return payrolls, nil
 }

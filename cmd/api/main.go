@@ -54,7 +54,54 @@ func main() {
 	payrollConceptRepo := repository.NewGormPayrollConceptRepository(db)
 	payrollConceptService := service.NewPayrollConceptService(payrollConceptRepo)
 
-	router := transportHttp.NewRouter(userService, roleService, permissionService, employeeService, payrollConceptService)
+	// Employee Contract
+	contractRepo := repository.NewGormEmployeeContractRepository(db)
+
+	// Payroll
+	payrollRepo := repository.NewGormPayrollRepository(db)
+	payrollService := service.NewPayrollService(payrollRepo)
+	payrollItemRepo := repository.NewGormPayrollItemRepository(db)
+
+	// Payment
+	paymentRepo := repository.NewGormPaymentRepository(db)
+
+	// Payroll Calculator
+	payrollCalculatorService := service.NewPayrollCalculatorService(
+		payrollRepo,
+		payrollItemRepo,
+		employeeRepo,
+		contractRepo,
+		payrollConceptRepo,
+	)
+
+	// Payroll State Service (transiciones de estado)
+	payrollStateService := service.NewPayrollStateService(
+		payrollRepo,
+		paymentRepo,
+		employeeRepo,
+	)
+
+	// Batch Payroll Service
+	batchPayrollService := service.NewPayrollBatchService(
+		payrollRepo,
+		payrollItemRepo,
+		employeeRepo,
+		contractRepo,
+		payrollConceptRepo,
+		payrollStateService,
+	)
+
+	router := transportHttp.NewRouter(
+		userService,
+		roleService,
+		permissionService,
+		employeeService,
+		payrollConceptService,
+		payrollCalculatorService,
+		payrollService,
+		payrollStateService,
+		batchPayrollService,
+	)
 	port := getEnv("PORT", "8080")
 	srv := &http.Server{
 		Addr:         ":" + port,

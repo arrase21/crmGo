@@ -73,7 +73,6 @@ func (s *PayrollConceptService) SeedDefaultConcepts(ctx context.Context) error {
 	defaults := domain.DefaultPayrollConcepts()
 
 	for _, concept := range defaults {
-		// Verificar si ya existe
 		existing, err := s.conceptRepo.GetByCode(ctx, concept.Code)
 		if err == nil && existing != nil {
 			continue // Ya existe, skip

@@ -12,6 +12,10 @@ func NewRouter(
 	permissionSvc *service.PermissionService,
 	employeeSvc *service.EmployeeService,
 	payrollConceptSvc *service.PayrollConceptService,
+	payrollCalculatorSvc *service.PayrollCalculatorService,
+	payrollSvc *service.PayrollService,
+	payrollStateSvc *service.PayrollStateService,
+	batchPayrollSvc *service.PayrollBatchService,
 ) *gin.Engine {
 	r := gin.Default()
 
@@ -93,6 +97,25 @@ func NewRouter(
 		payrollConcepts.GET("/:id", conceptHandler.GetByID)
 		payrollConcepts.PUT("/:id", conceptHandler.Update)
 		payrollConcepts.DELETE("/:id", conceptHandler.Delete)
+	}
+
+	// Payroll (Nómina)
+	payroll := v1.Group("/payroll")
+	{
+		payrollHandler := NewPayrollHandler(payrollCalculatorSvc, payrollSvc)
+		payroll.POST("/calculate", payrollHandler.Calculate)
+		payroll.POST("/calculate-and-save", payrollHandler.CalculateAndSave)
+		payroll.GET("/employee/:employeeId", payrollHandler.ListByEmployee)
+		payroll.GET("/:id", payrollHandler.GetByID)
+		payroll.DELETE("/:id", payrollHandler.Delete)
+
+		// Nuevos endpoints de estado y batch
+		stateHandler := NewPayrollStateHandler(payrollStateSvc, batchPayrollSvc, payrollSvc)
+		payroll.POST("/:id/mark-paid", stateHandler.MarkAsPaid)
+		payroll.POST("/:id/revert-to-draft", stateHandler.RevertToDraft)
+		payroll.GET("/:id/payment", stateHandler.GetPaymentInfo)
+		payroll.POST("/batch", stateHandler.ProcessBatch)
+		payroll.GET("/summary", stateHandler.GetPayrollSummary)
 	}
 
 	return r

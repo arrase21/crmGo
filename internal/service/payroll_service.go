@@ -65,3 +65,11 @@ func (s *PayrollService) Delete(ctx context.Context, employeeID uint) error {
 	}
 	return s.payrollRepo.Delete(ctx, employeeID)
 }
+
+// GetByPeriod obtiene todas las nóminas de un periodo para el tenant actual
+func (s *PayrollService) GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]domain.Payroll, error) {
+	if periodStart.IsZero() || periodEnd.IsZero() {
+		return nil, errors.New("invalid period dates")
+	}
+	return s.payrollRepo.GetByPeriod(ctx, periodStart, periodEnd)
+}

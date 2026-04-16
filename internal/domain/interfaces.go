@@ -35,6 +35,7 @@ var (
 	ErrPayrollNotFound          = errors.New("payroll not found")
 	ErrPayrollAlreadyPaid       = errors.New("payroll already paid")
 	ErrConceptNotFound          = errors.New("payroll concept not found")
+	ErrInvalidPeriod            = errors.New("invalid period: end date must be after start date")
 )
 
 // ContextKey for tenant
@@ -89,6 +90,7 @@ type EmployeeRepo interface {
 	GetByID(ctx context.Context, id uint) (*Employee, error)
 	GetByUserID(ctx context.Context, userID uint) (*Employee, error)
 	List(ctx context.Context, page, limit int) ([]Employee, int64, error)
+	ListActive(ctx context.Context, page, limit int) ([]Employee, int64, error)
 	Update(ctx context.Context, emp *Employee) error
 	Delete(ctx context.Context, id uint) error
 }
@@ -97,6 +99,7 @@ type PayrollRepo interface {
 	Create(ctx context.Context, payroll *Payroll) error
 	GetByID(ctx context.Context, id uint) (*Payroll, error)
 	GetByEmployeeAndPeriod(ctx context.Context, employeeID uint, periodStart, periodEnd time.Time) (*Payroll, error)
+	GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]Payroll, error)
 	ListByEmployee(ctx context.Context, employeeID uint) ([]Payroll, error)
 	Update(ctx context.Context, payroll *Payroll) error
 	Delete(ctx context.Context, id uint) error
@@ -110,4 +113,35 @@ type PayrollConceptRepo interface {
 	List(ctx context.Context, page, limit int) ([]PayrollConcept, int64, error)
 	Update(ctx context.Context, concept *PayrollConcept) error
 	Delete(ctx context.Context, id uint) error
+}
+
+type PayrollItemRepo interface {
+	Create(ctx context.Context, item *PayrollItem) error
+	CreateBatch(ctx context.Context, items []PayrollItem) error
+	GetByIDPayrollID(ctx context.Context, payrollID uint) ([]PayrollItem, error)
+	// Update(ctx context.Context, payrollID *PayrollItem) error
+	DeleteByPayrollID(ctx context.Context, payrollID uint) error
+}
+
+type EmployeeContractRepo interface {
+	Create(ctx context.Context, contract *EmployeeContract) error
+	GetByID(ctx context.Context, id uint) (*EmployeeContract, error)
+	GetActiveByEmployee(ctx context.Context, employeeID uint) (*EmployeeContract, error)
+	ListByEmployee(ctx context.Context, employeeID uint) ([]EmployeeContract, error)
+	Update(ctx context.Context, contract *EmployeeContract) error
+	Delete(ctx context.Context, id uint) error
+}
+
+type PaymentRepo interface {
+	Create(ctx context.Context, payment *Payment) error
+	GetByID(ctx context.Context, id uint) (*Payment, error)
+	GetByPayrollID(ctx context.Context, payrollID uint) (*Payment, error)
+	Delete(ctx context.Context, id uint) error
+}
+
+// Extended PayrollRepo con métodos para batch processing
+type PayrollBatchRepo interface {
+	PayrollRepo
+	GetActiveEmployees(ctx context.Context, page, limit int) ([]Employee, int64, error)
+	GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]Payroll, error)
 }
