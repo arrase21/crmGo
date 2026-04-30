@@ -23,7 +23,7 @@ func (r *GormPayrollRepo) Create(ctx context.Context, payroll *domain.Payroll) e
 	if payroll == nil {
 		return errors.New("payroll cannot be nil")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (r *GormPayrollRepo) GetByID(ctx context.Context, id uint) (*domain.Payroll
 	if id == 0 {
 		return nil, errors.New("invalid payroll id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +64,7 @@ func (r *GormPayrollRepo) GetByEmployeeAndPeriod(ctx context.Context, employeID 
 	if employeID == 0 {
 		return nil, errors.New("invalid employeid")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (r *GormPayrollRepo) ListByEmployee(ctx context.Context, employeeID uint) (
 	if employeeID == 0 {
 		return nil, errors.New("invalid employee id")
 	}
-	tenanID, err := tenantFromctx(ctx)
+	tenanID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (r *GormPayrollRepo) Update(ctx context.Context, payroll *domain.Payroll) e
 	if payroll == nil || payroll.ID == 0 {
 		return errors.New("payroll cannot be nil or 0")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (r *GormPayrollRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid payroll id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (r *GormPayrollRepo) Delete(ctx context.Context, id uint) error {
 
 // GetByPeriod obtiene todas las nóminas de un periodo
 func (r *GormPayrollRepo) GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]domain.Payroll, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}

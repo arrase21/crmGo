@@ -20,7 +20,7 @@ func (r *GormUserRoleRepo) AssignRole(ctx context.Context, userID, roleID uint) 
 	if userID == 0 || roleID == 0 {
 		return errors.New("cannot be 0")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (r *GormUserRoleRepo) RevokeRole(ctx context.Context, userID, roleID uint) 
 	if userID == 0 || roleID == 0 {
 		return errors.New("invalid userid or roleid")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (r *GormUserRoleRepo) GetUserRoles(ctx context.Context, userID uint) ([]dom
 	if userID == 0 {
 		return nil, errors.New("invalid user id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +103,7 @@ func (r *GormUserRoleRepo) GetRoleUsers(ctx context.Context, roleID uint) ([]dom
 	if roleID == 0 {
 		return nil, errors.New("invalid user id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}

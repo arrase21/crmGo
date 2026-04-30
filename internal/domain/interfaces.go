@@ -93,6 +93,29 @@ type EmployeeRepo interface {
 	ListActive(ctx context.Context, page, limit int) ([]Employee, int64, error)
 	Update(ctx context.Context, emp *Employee) error
 	Delete(ctx context.Context, id uint) error
+
+	// Nuevos métodos
+	ExistsByUserID(ctx context.Context, userID uint) (bool, error)
+	GetStatistics(ctx context.Context, tenantID uint) (EmployeeStatistics, error)
+}
+
+// EmployeeFilter para búsquedas avanzadas
+type EmployeeFilter struct {
+	Status            string // active, inactive, suspended
+	Department        uint   // filtrar por departamento
+	Position          uint   // filtrar por posición
+	Search            string // buscar por nombre o documento
+	HasActiveContract bool   // solo empleados con contrato activo
+}
+
+// EmployeeStatistics estadísticas de empleados
+type EmployeeStatistics struct {
+	Total           int64 `json:"total"`
+	Active          int64 `json:"active"`
+	Inactive        int64 `json:"inactive"`
+	Suspended       int64 `json:"suspended"`
+	WithContract    int64 `json:"with_contract"`
+	WithoutContract int64 `json:"without_contract"`
 }
 
 type PayrollRepo interface {
@@ -144,4 +167,51 @@ type PayrollBatchRepo interface {
 	PayrollRepo
 	GetActiveEmployees(ctx context.Context, page, limit int) ([]Employee, int64, error)
 	GetByPeriod(ctx context.Context, periodStart, periodEnd time.Time) ([]Payroll, error)
+}
+
+// ========================================
+// Nuevas interfaces para nómina completa
+// ========================================
+
+// OvertimeRepo interface para horas extras
+type OvertimeRepo interface {
+	Create(ctx context.Context, overtime *Overtime) error
+	GetByID(ctx context.Context, id uint) (*Overtime, error)
+	GetByEmployeeAndPeriod(ctx context.Context, employeeID uint, start, end time.Time) ([]Overtime, error)
+	GetByPayrollID(ctx context.Context, payrollID uint) ([]Overtime, error)
+	List(ctx context.Context, employeeID uint, page, limit int) ([]Overtime, int64, error)
+	Update(ctx context.Context, overtime *Overtime) error
+	Delete(ctx context.Context, id uint) error
+}
+
+// AbsenceRepo interface para incapacidades/licencias
+type AbsenceRepo interface {
+	Create(ctx context.Context, absence *Absence) error
+	GetByID(ctx context.Context, id uint) (*Absence, error)
+	GetByEmployeeAndPeriod(ctx context.Context, employeeID uint, start, end time.Time) ([]Absence, error)
+	GetByPayrollID(ctx context.Context, payrollID uint) ([]Absence, error)
+	List(ctx context.Context, employeeID uint, page, limit int) ([]Absence, int64, error)
+	Update(ctx context.Context, absence *Absence) error
+	Delete(ctx context.Context, id uint) error
+}
+
+// BonusRepo interface para bonificaciones
+type BonusRepo interface {
+	Create(ctx context.Context, bonus *Bonus) error
+	GetByID(ctx context.Context, id uint) (*Bonus, error)
+	GetByEmployeeAndPeriod(ctx context.Context, employeeID uint, start, end time.Time) ([]Bonus, error)
+	GetByPayrollID(ctx context.Context, payrollID uint) ([]Bonus, error)
+	List(ctx context.Context, employeeID uint, page, limit int) ([]Bonus, int64, error)
+	Update(ctx context.Context, bonus *Bonus) error
+	Delete(ctx context.Context, id uint) error
+}
+
+// TaxRuleRepo interface para reglas de retención
+type TaxRuleRepo interface {
+	Create(ctx context.Context, rule *TaxRule) error
+	GetByID(ctx context.Context, id uint) (*TaxRule, error)
+	GetByIncome(ctx context.Context, income float64) (*TaxRule, error)
+	List(ctx context.Context, page, limit int) ([]TaxRule, int64, error)
+	Update(ctx context.Context, rule *TaxRule) error
+	Delete(ctx context.Context, id uint) error
 }

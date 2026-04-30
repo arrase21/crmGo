@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -14,6 +15,14 @@ const (
 	PayrollStatusDraft      = "draft"
 	PayrollStatusCalculated = "calculated"
 	PayrollStatusPaid       = "paid"
+	PayrollStatusApproved   = "approved"
+)
+
+// Employee status constants
+const (
+	EmployeeStatusActive    = "active"
+	EmployeeStatusInactive  = "inactive"
+	EmployeeStatusSuspended = "suspended"
 )
 
 const (
@@ -140,19 +149,23 @@ type Position struct {
 }
 
 type Employee struct {
-	ID           uint `gorm:"primaryKey"`
-	TenantID     uint `gorm:"not null;index"`
-	UserID       uint `gorm:"not null;uniqueIndex"`
-	DepartmentID uint `gorm:"index"`
-	PositionID   uint `gorm:"index"`
-	IsActive     bool `gorm:"default:true;index"`
+	ID           uint   `gorm:"primaryKey"`
+	TenantID     uint   `gorm:"not null;index"`
+	UserID       uint   `gorm:"not null;uniqueIndex"`
+	DepartmentID uint   `gorm:"index"`
+	PositionID   uint   `gorm:"index"`
+	IsActive     bool   `gorm:"default:true;index"`
+	EmployeeCode string `gorm:"size:20;index"`            // Código interno del empleado
+	Status       string `gorm:"size:20;default:'active'"` // active, inactive, suspended
+	Notes        string `gorm:"size:500"`                 // Notas internas
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
-	DeletedAt    gorm.DeletedAt     `gorm:"index"`
-	User         User               `gorm:"foreignKey:UserID"`
-	Department   Department         `gorm:"foreignKey:DepartmentID"`
-	Position     Position           `gorm:"foreignKey:PositionID"`
-	Contracts    []EmployeeContract `gorm:"foreignKey:EmployeeID"`
+	DeletedAt    gorm.DeletedAt `gorm:"index"`
+
+	User       User               `gorm:"foreignKey:UserID"`
+	Department Department         `gorm:"foreignKey:DepartmentID"`
+	Position   Position           `gorm:"foreignKey:PositionID"`
+	Contracts  []EmployeeContract `gorm:"foreignKey:EmployeeID"`
 }
 type EmployeeContract struct {
 	ID             uint `gorm:"primaryKey"`
@@ -253,6 +266,148 @@ type Payment struct {
 	CreatedAt time.Time
 
 	Payroll Payroll `gorm:"foreignKey:PayrollID"`
+}
+
+// ========================================
+// Horas Extras
+// ========================================
+
+const (
+	OvertimeTypeExtra      = "extra"       // Hora extra diurna
+	OvertimeTypeNight      = "night"       // Recargo nocturno
+	OvertimeTypeHoliday    = "holiday"     // Hora en día festivo
+	OvertimeTypeSunday     = "sunday"      // Recargo dominical
+	OvertimeTypeExtraNight = "extra_night" // Hora extra nocturna
+)
+
+// Overtime representa horas extras de un empleado
+type Overtime struct {
+	ID         uint      `gorm:"primaryKey"`
+	TenantID   uint      `gorm:"not null;index"`
+	EmployeeID uint      `gorm:"not null;index"`
+	PayrollID  uint      `gorm:"index"` // nullable, se asigna al procesar nómina
+	Date       time.Time `gorm:"not null;index"`
+	Hours      float64   `gorm:"not null"`
+	Type       string    `gorm:"size:20;not null"` // extra, night, holiday, sunday
+	Rate       float64   `gorm:"default:1.0"`      // multiplicador (1.25, 1.35, 2.0)
+	Amount     float64   `gorm:"default:0"`        // calculado
+	ApprovedBy uint      `gorm:"index"`
+	ApprovedAt *time.Time
+	Status     string `gorm:"size:20;default:'pending'"` // pending, approved, rejected
+	Notes      string `gorm:"size:500"`
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	DeletedAt  gorm.DeletedAt `gorm:"index"`
+
+	Employee Employee `gorm:"foreignKey:EmployeeID"`
+	Payroll  Payroll  `gorm:"foreignKey:PayrollID"`
+}
+
+func (Overtime) TableName() string {
+	return "overtimes"
+}
+
+// ========================================
+// Incapacidades / Licencias
+// ========================================
+
+const (
+	AbsenceTypeSick      = "sick"      // Incapacidad médica
+	AbsenceTypeMaternity = "maternity" // Licencia de maternidad
+	AbsenceTypePaternity = "paternity" // Licencia de paternidad
+	AbsenceTypeVacation  = "vacation"  // Vacaciones
+	AbsenceTypeUnpaid    = "unpaid"    // Licencia sin pago
+	AbsenceTypeOther     = "other"     // Otra ausencia
+)
+
+// Absence representa una ausencia/incapacidad
+type Absence struct {
+	ID                 uint      `gorm:"primaryKey"`
+	TenantID           uint      `gorm:"not null;index"`
+	EmployeeID         uint      `gorm:"not null;index"`
+	PayrollID          uint      `gorm:"index"`            // nullable
+	Type               string    `gorm:"size:20;not null"` // sick, vacation, maternity, etc.
+	StartDate          time.Time `gorm:"not null;index"`
+	EndDate            time.Time `gorm:"not null"`
+	PaidPercent        float64   `gorm:"default:100"`              // porcentaje de pago (100, 66.6, 0)
+	DailyRate          float64   `gorm:"default:0"`                // valor diario
+	TotalDeduction     float64   `gorm:"default:0"`                // total deduccion
+	MedicalCertificate string    `gorm:"size:50"`                  // certificado médico
+	Status             string    `gorm:"size:20;default:'active'"` // active, processed
+	Notes              string    `gorm:"size:500"`
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
+	DeletedAt          gorm.DeletedAt `gorm:"index"`
+
+	Employee Employee `gorm:"foreignKey:EmployeeID"`
+	Payroll  Payroll  `gorm:"foreignKey:PayrollID"`
+}
+
+func (Absence) TableName() string {
+	return "absences"
+}
+
+// ========================================
+// Bonificaciones
+// ========================================
+
+const (
+	BonusTypePerformance = "performance" // Por desempeño
+	BonusTypeProduction  = "production"  // Por producción
+	BonusTypeAttendance  = "attendance"  // Por asistencia
+	BonusTypeChristmas   = "christmas"   // Prima de servicios / navidad
+	BonusTypeOther       = "other"       // Otra bonificación
+)
+
+// Bonus representa una bonificación variable
+type Bonus struct {
+	ID          uint      `gorm:"primaryKey"`
+	TenantID    uint      `gorm:"not null;index"`
+	EmployeeID  uint      `gorm:"not null;index"`
+	PayrollID   uint      `gorm:"index"`
+	Type        string    `gorm:"size:20;not null"` // performance, production, etc.
+	Amount      float64   `gorm:"not null"`
+	Description string    `gorm:"size:255"`
+	Date        time.Time `gorm:"not null;index"` // fecha de la bonificación
+	ApprovedBy  uint      `gorm:"index"`
+	ApprovedAt  *time.Time
+	Status      string `gorm:"size:20;default:'pending'"` // pending, approved, paid
+	Notes       string `gorm:"size:500"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+
+	Employee Employee `gorm:"foreignKey:EmployeeID"`
+	Payroll  Payroll  `gorm:"foreignKey:PayrollID"`
+}
+
+func (Bonus) TableName() string {
+	return "bonuses"
+}
+
+// ========================================
+// Retención en Fuente (Impuestos)
+// ========================================
+
+// TaxRule representa una regla de retención
+type TaxRule struct {
+	ID          uint    `gorm:"primaryKey"`
+	TenantID    uint    `gorm:"not null;index"`
+	Code        string  `gorm:"size:30;not null;uniqueIndex:idx_tax_rule_tenant_code,composite:tenant_code"`
+	Name        string  `gorm:"size:100;not null"`
+	BasePercent float64 `gorm:"default:0"` // porcentaje base de retención
+	TaxCategory string  `gorm:"size:30"`   // ingresos_trabajo, honorarios, etc.
+	MinIncome   float64 `gorm:"default:0"` // ingreso mínimo para aplicar
+	MaxIncome   float64 `gorm:"default:0"` // ingreso máximo (0 = sin límite)
+	Priority    int     `gorm:"default:0"` // orden de aplicación
+	IsActive    bool    `gorm:"default:true"`
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+}
+
+func (TaxRule) TableName() string {
+	return "tax_rules"
 }
 
 // ========================================
@@ -393,6 +548,92 @@ func (r *Role) HasPermission(resource, action string) bool {
 		}
 	}
 	return false
+}
+
+// ========================================
+// Métodos de Employee (Behaviors)
+// ========================================
+
+// HasActiveContract verifica si el empleado tiene contrato activo
+func (e *Employee) HasActiveContract() bool {
+	for _, c := range e.Contracts {
+		if c.IsActive {
+			return true
+		}
+	}
+	return false
+}
+
+// GetMainContract retorna el contrato activo principal
+func (e *Employee) GetMainContract() *EmployeeContract {
+	for _, c := range e.Contracts {
+		if c.IsActive {
+			return &c
+		}
+	}
+	return nil
+}
+
+// GetFullName retorna el nombre completo del empleado
+func (e *Employee) GetFullName() string {
+	if e.User.FirstName == "" && e.User.LastName == "" {
+		return ""
+	}
+	return e.User.FirstName + " " + e.User.LastName
+}
+
+// CanBeActivated verifica si el empleado puede ser activado
+func (e *Employee) CanBeActivated() bool {
+	return e.Status == EmployeeStatusInactive || e.Status == EmployeeStatusSuspended
+}
+
+// CanBeDeactivated verifica si el empleado puede ser desactivado
+func (e *Employee) CanBeDeactivated() bool {
+	// No puede desactivarse si tiene contrato activo
+	for _, c := range e.Contracts {
+		if c.IsActive {
+			return false
+		}
+	}
+	return true
+}
+
+// SetStatus cambia el estado del empleado con validaciones
+func (e *Employee) SetStatus(newStatus string) error {
+	oldStatus := e.Status
+
+	switch newStatus {
+	case EmployeeStatusActive:
+		if oldStatus != EmployeeStatusInactive && oldStatus != EmployeeStatusSuspended {
+			return errors.New("can only activate inactive or suspended employees")
+		}
+	case EmployeeStatusInactive:
+		if oldStatus == EmployeeStatusActive && !e.CanBeDeactivated() {
+			return errors.New("cannot deactivate: employee has active contract")
+		}
+	case EmployeeStatusSuspended:
+		// Suspension es reversible
+		e.Status = newStatus
+		return nil
+	}
+
+	e.Status = newStatus
+	return nil
+}
+
+// Validate valida los datos del empleado
+func (e *Employee) Validate() error {
+	if e.UserID == 0 {
+		return errors.New("user is required")
+	}
+	if e.TenantID == 0 {
+		return errors.New("tenant is required")
+	}
+	if e.Status != "" && e.Status != EmployeeStatusActive &&
+		e.Status != EmployeeStatusInactive && e.Status != EmployeeStatusSuspended {
+		return errors.New("invalid status: must be active, inactive, or suspended")
+	}
+	return nil
 }
 
 // ========================================

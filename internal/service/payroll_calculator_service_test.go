@@ -131,6 +131,16 @@ func (m *MockEmployeeRepo) Delete(ctx context.Context, id uint) error {
 	return args.Error(0)
 }
 
+func (m *MockEmployeeRepo) ExistsByUserID(ctx context.Context, userID uint) (bool, error) {
+	args := m.Called(ctx, userID)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *MockEmployeeRepo) GetStatistics(ctx context.Context, tenantID uint) (domain.EmployeeStatistics, error) {
+	args := m.Called(ctx, tenantID)
+	return args.Get(0).(domain.EmployeeStatistics), args.Error(1)
+}
+
 type MockContractRepo struct {
 	mock.Mock
 }

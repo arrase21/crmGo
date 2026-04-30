@@ -23,7 +23,7 @@ func (r *GormEmployeeContractRepo) Create(ctx context.Context, contract *domain.
 	if contract == nil {
 		return errors.New("contract cannot be nil")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (r *GormEmployeeContractRepo) GetByID(ctx context.Context, id uint) (*domai
 	if id == 0 {
 		return nil, errors.New("invalid contract id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func (r *GormEmployeeContractRepo) GetActiveByEmployee(ctx context.Context, empl
 	if employeeID == 0 {
 		return nil, errors.New("invalid employee id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -87,7 +87,7 @@ func (r *GormEmployeeContractRepo) ListByEmployee(ctx context.Context, employeeI
 	if employeeID == 0 {
 		return nil, errors.New("invalid employee id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func (r *GormEmployeeContractRepo) Update(ctx context.Context, contract *domain.
 	if contract == nil || contract.ID == 0 {
 		return errors.New("contract cannot be nil or 0")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func (r *GormEmployeeContractRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid contract id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}

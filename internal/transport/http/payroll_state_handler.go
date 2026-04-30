@@ -92,6 +92,29 @@ func (h *PayrollStateHandler) RevertToDraft(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "payroll reverted to draft"})
 }
 
+// Approve marca una nómina calculada como aprobada
+// POST /api/v1/payroll/:id/approve
+func (h *PayrollStateHandler) Approve(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseUint(idStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payroll id"})
+		return
+	}
+
+	err = h.stateSvc.Approve(c.Request.Context(), uint(id), 0) // approvedBy = 0 por ahora
+	if err != nil {
+		status := http.StatusInternalServerError
+		if err == service.ErrInvalidStatusTransition {
+			status = http.StatusConflict
+		}
+		c.JSON(status, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "payroll approved successfully"})
+}
+
 // GetPaymentInfo obtiene la información de pago de una nómina
 // GET /api/v1/payroll/:id/payment
 func (h *PayrollStateHandler) GetPaymentInfo(c *gin.Context) {
@@ -211,6 +234,7 @@ func (h *PayrollStateHandler) GetPayrollSummary(c *gin.Context) {
 		TotalCount      int     `json:"total_count"`
 		DraftCount      int     `json:"draft_count"`
 		CalculatedCount int     `json:"calculated_count"`
+		ApprovedCount   int     `json:"approved_count"`
 		PaidCount       int     `json:"paid_count"`
 		TotalGross      float64 `json:"total_gross_amount"`
 		TotalDeductions float64 `json:"total_deductions"`
@@ -224,6 +248,8 @@ func (h *PayrollStateHandler) GetPayrollSummary(c *gin.Context) {
 			summary.DraftCount++
 		case "calculated":
 			summary.CalculatedCount++
+		case "approved":
+			summary.ApprovedCount++
 		case "paid":
 			summary.PaidCount++
 		}

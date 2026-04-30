@@ -46,9 +46,9 @@ func main() {
 	userRoleRepo := repository.NewGormUserRoleRepository(db)
 	permissionService := service.NewPermissionService(userRoleRepo, roleRepo)
 
-	// Employee
+	// Employee - reuse userRepo
 	employeeRepo := repository.NewGormEmployeeRepository(db)
-	employeeService := service.NewEmployeeService(employeeRepo)
+	employeeService := service.NewEmployeeService(employeeRepo, userRepo)
 
 	// Payroll Concept
 	payrollConceptRepo := repository.NewGormPayrollConceptRepository(db)

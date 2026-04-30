@@ -27,7 +27,7 @@ func (r *GormPaymentRepo) GetByID(ctx context.Context, id uint) (*domain.Payment
 	if id == 0 {
 		return nil, errors.New("invalid payment id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (r *GormPaymentRepo) GetByPayrollID(ctx context.Context, payrollID uint) (*
 	if payrollID == 0 {
 		return nil, errors.New("invalid payroll id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func (r *GormPaymentRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid payment id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}

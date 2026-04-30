@@ -113,6 +113,7 @@ func NewRouter(
 		stateHandler := NewPayrollStateHandler(payrollStateSvc, batchPayrollSvc, payrollSvc)
 		payroll.POST("/:id/mark-paid", stateHandler.MarkAsPaid)
 		payroll.POST("/:id/revert-to-draft", stateHandler.RevertToDraft)
+		payroll.POST("/:id/approve", stateHandler.Approve)
 		payroll.GET("/:id/payment", stateHandler.GetPaymentInfo)
 		payroll.POST("/batch", stateHandler.ProcessBatch)
 		payroll.GET("/summary", stateHandler.GetPayrollSummary)

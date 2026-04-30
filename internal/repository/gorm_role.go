@@ -22,7 +22,7 @@ func (r *GormRoleRepo) Create(ctx context.Context, role *domain.Role) error {
 	if role == nil {
 		return errors.New("role cannot be nil")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (r *GormRoleRepo) GetByID(ctx context.Context, id uint) (*domain.Role, erro
 	if id == 0 {
 		return nil, errors.New("invalid role id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (r *GormRoleRepo) GetByID(ctx context.Context, id uint) (*domain.Role, erro
 }
 
 func (r *GormRoleRepo) GetByName(ctx context.Context, name string) (*domain.Role, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +80,7 @@ func (r *GormRoleRepo) GetByName(ctx context.Context, name string) (*domain.Role
 }
 
 func (r *GormRoleRepo) List(ctx context.Context) ([]domain.Role, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func (r *GormRoleRepo) Update(ctx context.Context, role *domain.Role) error {
 	if role == nil || role.ID == 0 {
 		return errors.New("role cannot be nil or have zero id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -126,7 +126,7 @@ func (r *GormRoleRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (r *GormRoleRepo) Delete(ctx context.Context, id uint) error {
 
 // Assing permissions
 func (r *GormRoleRepo) AssignPermission(ctx context.Context, roleID, actionID uint) error {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (r *GormRoleRepo) AssignPermission(ctx context.Context, roleID, actionID ui
 }
 
 func (r *GormRoleRepo) RevokePermission(ctx context.Context, roleID, actionID uint) error {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func (r *GormRoleRepo) RevokePermission(ctx context.Context, roleID, actionID ui
 }
 
 func (r *GormRoleRepo) GetPermissions(ctx context.Context, roleID uint) ([]domain.PermissionAction, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}

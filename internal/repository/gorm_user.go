@@ -19,29 +19,12 @@ func NewGormUserRepository(db *gorm.DB) domain.UserRepo {
 	}
 }
 
-func tenantFromctx(ctx context.Context) (uint, error) {
-	tenantID, ok := ctx.Value(domain.TenantIDKey).(uint)
-	if !ok || tenantID == 0 {
-		return 0, errors.New("tenant not found in context")
-	}
-	return tenantID, nil
-}
-
-func isDuplicateError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errMsg := strings.ToLower(err.Error())
-	return strings.Contains(errMsg, "duplicate") ||
-		strings.Contains(errMsg, "unique constraint")
-}
-
 func (r *GormUserRepo) Create(ctx context.Context, usr *domain.User) error {
 	if usr == nil {
 		return errors.New("user cannot be nil")
 	}
 
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -73,7 +56,7 @@ func (r *GormUserRepo) GetByID(ctx context.Context, id uint) (*domain.User, erro
 		return nil, errors.New("invalid user id")
 	}
 
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +81,7 @@ func (r *GormUserRepo) GetByDni(ctx context.Context, dni string) (*domain.User, 
 		return nil, errors.New("dni cannot be empty")
 	}
 
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +102,7 @@ func (r *GormUserRepo) GetByDni(ctx context.Context, dni string) (*domain.User, 
 }
 
 func (r *GormUserRepo) List(ctx context.Context, page, limit int) ([]domain.User, int64, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -162,7 +145,7 @@ func (r *GormUserRepo) Update(ctx context.Context, usr *domain.User) error {
 		return errors.New("user cannot be nil or have zero id")
 	}
 
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -205,7 +188,7 @@ func (r *GormUserRepo) Delete(ctx context.Context, id uint) error {
 		return errors.New("invalid user id")
 	}
 
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}

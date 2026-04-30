@@ -101,6 +101,25 @@ func (s *PayrollStateService) MarkAsCalculated(ctx context.Context, payrollID ui
 	return s.payrollRepo.Update(ctx, payroll)
 }
 
+// Approve marca una nómina calculada como aprobada
+func (s *PayrollStateService) Approve(ctx context.Context, payrollID uint, approvedBy uint) error {
+	if payrollID == 0 {
+		return errors.New("payroll id is required")
+	}
+
+	payroll, err := s.payrollRepo.GetByID(ctx, payrollID)
+	if err != nil {
+		return err
+	}
+
+	if !s.canTransitionTo(payroll.Status, domain.PayrollStatusApproved) {
+		return ErrInvalidStatusTransition
+	}
+
+	payroll.Status = domain.PayrollStatusApproved
+	return s.payrollRepo.Update(ctx, payroll)
+}
+
 // RevertToDraft revierte una nómina calculada (no pagada) a draft
 func (s *PayrollStateService) RevertToDraft(ctx context.Context, payrollID uint) error {
 	if payrollID == 0 {
@@ -145,12 +164,13 @@ func (s *PayrollStateService) ValidatePayrollCreation(ctx context.Context, emplo
 }
 
 // canTransitionTo valida si una transición de estado es válida
-// Estados posibles: draft -> calculated -> paid
-// Excepciones: calculated -> draft (revertir)
+// Estados posibles: draft -> calculated -> approved -> paid
+// Excepciones: calculated -> draft (revertir), approved -> calculated
 func (s *PayrollStateService) canTransitionTo(from, to string) bool {
 	validTransitions := map[string][]string{
 		domain.PayrollStatusDraft:      {domain.PayrollStatusCalculated, domain.PayrollStatusDraft},
-		domain.PayrollStatusCalculated: {domain.PayrollStatusPaid, domain.PayrollStatusDraft},
+		domain.PayrollStatusCalculated: {domain.PayrollStatusApproved, domain.PayrollStatusDraft},
+		domain.PayrollStatusApproved:   {domain.PayrollStatusPaid, domain.PayrollStatusCalculated},
 		domain.PayrollStatusPaid:       {}, // Estado terminal, no hay transiciones válidas
 	}
 

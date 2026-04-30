@@ -22,7 +22,7 @@ func (r *GormEmployeeRepo) Create(ctx context.Context, emp *domain.Employee) err
 	if emp == nil {
 		return errors.New("employee cannot be nil")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (r *GormEmployeeRepo) GetByID(ctx context.Context, id uint) (*domain.Employ
 	if id == 0 {
 		return nil, errors.New("invalid employee id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +58,7 @@ func (r *GormEmployeeRepo) GetByUserID(ctx context.Context, userID uint) (*domai
 	if userID == 0 {
 		return nil, errors.New("invalid user id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func (r *GormEmployeeRepo) GetByUserID(ctx context.Context, userID uint) (*domai
 }
 
 func (r *GormEmployeeRepo) List(ctx context.Context, page, limit int) ([]domain.Employee, int64, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -119,7 +119,7 @@ func (r *GormEmployeeRepo) Update(ctx context.Context, emp *domain.Employee) err
 	if emp.ID == 0 {
 		return errors.New("invalid employee id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (r *GormEmployeeRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid employee id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -151,7 +151,7 @@ func (r *GormEmployeeRepo) Delete(ctx context.Context, id uint) error {
 
 // ListActive retorna solo empleados activos con sus relaciones
 func (r *GormEmployeeRepo) ListActive(ctx context.Context, page, limit int) ([]domain.Employee, int64, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -185,4 +185,49 @@ func (r *GormEmployeeRepo) ListActive(ctx context.Context, page, limit int) ([]d
 	}
 
 	return employees, total, nil
+}
+
+// ExistsByUserID verifica si existe un empleado para el usuario dado
+func (r *GormEmployeeRepo) ExistsByUserID(ctx context.Context, userID uint) (bool, error) {
+	if userID == 0 {
+		return false, errors.New("invalid user id")
+	}
+	tenantID, err := tenantFromCtx(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	var count int64
+	err = r.db.WithContext(ctx).
+		Model(&domain.Employee{}).
+		Where("tenant_id = ? AND user_id = ?", tenantID, userID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+
+	return count > 0, nil
+}
+
+// GetStatistics retorna estadísticas de empleados del tenant
+func (r *GormEmployeeRepo) GetStatistics(ctx context.Context, tenantID uint) (domain.EmployeeStatistics, error) {
+	stats := domain.EmployeeStatistics{}
+
+	// Total
+	r.db.Model(&domain.Employee{}).Where("tenant_id = ?", tenantID).Count(&stats.Total)
+	// Por estado
+	r.db.Model(&domain.Employee{}).Where("tenant_id = ? AND status = ?", tenantID, domain.EmployeeStatusActive).Count(&stats.Active)
+	r.db.Model(&domain.Employee{}).Where("tenant_id = ? AND status = ?", tenantID, domain.EmployeeStatusInactive).Count(&stats.Inactive)
+	r.db.Model(&domain.Employee{}).Where("tenant_id = ? AND status = ?", tenantID, domain.EmployeeStatusSuspended).Count(&stats.Suspended)
+
+	// Con contrato activo (usando subquery)
+	r.db.Model(&domain.Employee{}).
+		Joins("JOIN employee_contracts ON employee_contracts.employee_id = employees.id AND employee_contracts.is_active = true").
+		Where("employees.tenant_id = ?", tenantID).
+		Distinct("employees.id").
+		Count(&stats.WithContract)
+
+	stats.WithoutContract = stats.Total - stats.WithContract
+
+	return stats, nil
 }

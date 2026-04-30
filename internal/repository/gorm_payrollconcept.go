@@ -22,7 +22,7 @@ func (r *GormPayrollConceptRepo) Create(ctx context.Context, concept *domain.Pay
 	if concept == nil {
 		return errors.New("concept cannot be nil")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func (r *GormPayrollConceptRepo) GetByID(ctx context.Context, id uint) (*domain.
 	if id == 0 {
 		return nil, errors.New("invald payroll concept id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (r *GormPayrollConceptRepo) GetByCode(ctx context.Context, code string) (*d
 	if code == "" {
 		return nil, errors.New("invalid code")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func (r *GormPayrollConceptRepo) GetByCode(ctx context.Context, code string) (*d
 }
 
 func (r *GormPayrollConceptRepo) GetActiveConcepts(ctx context.Context) ([]domain.PayrollConcept, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (r *GormPayrollConceptRepo) GetActiveConcepts(ctx context.Context) ([]domai
 }
 
 func (r *GormPayrollConceptRepo) List(ctx context.Context, page, limit int) ([]domain.PayrollConcept, int64, error) {
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -119,7 +119,7 @@ func (r *GormPayrollConceptRepo) Update(ctx context.Context, concept *domain.Pay
 	if concept == nil || concept.ID == 0 {
 		return errors.New("concept cannot be nil or with zero id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
@@ -146,7 +146,7 @@ func (r *GormPayrollConceptRepo) Delete(ctx context.Context, id uint) error {
 	if id == 0 {
 		return errors.New("invalid payroll concept id")
 	}
-	tenantID, err := tenantFromctx(ctx)
+	tenantID, err := tenantFromCtx(ctx)
 	if err != nil {
 		return err
 	}
